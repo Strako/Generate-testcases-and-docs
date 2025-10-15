@@ -3,10 +3,6 @@ import importTestCases from "./import-test-cases";
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
-// ===============================
-// Main function
-// ===============================
-
 async function main() {
   await importTestCases();
   await generateDoc();
