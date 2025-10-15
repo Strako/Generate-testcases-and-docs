@@ -32,7 +32,6 @@ const headers = (title: string, content: string) => ({
 // ===============================
 // Request create test cases
 // ===============================
-
 const createTest = async (title: string, content: string) => {
   let response;
   try {
@@ -52,7 +51,6 @@ const createTest = async (title: string, content: string) => {
 // ===============================
 // Upload each test case
 // ===============================
-
 export default async function importTestCases() {
   for (const test of testcases) {
     await createTest(test.title, test.content);
