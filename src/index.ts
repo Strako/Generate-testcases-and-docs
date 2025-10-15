@@ -1,8 +1,11 @@
 import generateDoc from "./doc-utils";
 import importTestCases from "./import-test-cases";
 
-function main() {
-  console.log("main function");
-  importTestCases();
-  generateDoc();
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
+async function main() {
+  await importTestCases();
+  await generateDoc();
 }
+
+await main();

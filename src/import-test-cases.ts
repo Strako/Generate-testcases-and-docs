@@ -1,5 +1,13 @@
 /* eslint-disable no-console */
+import fetch from "node-fetch";
 import { testcases } from "./data/testcases";
+
+const csrfmiddlewaretoken =
+  "nZe50CazrEeFyfGgVNQVhn0imLctKK7IuoQ2Utp7Mcp3RaQouZWB0w3xk7O8SkyC";
+const csrftoken = "hzM741pIvIlyt5kiJmgQTjdp8wMPiKB4";
+const default_tester = "armando";
+const product_id = "1";
+const category_id = "1";
 
 const headers = (title: string, content: string) => ({
   headers: {
@@ -14,11 +22,10 @@ const headers = (title: string, content: string) => ({
     "sec-fetch-site": "same-origin",
     "sec-fetch-user": "?1",
     "upgrade-insecure-requests": "1",
-    cookie:
-      "_fbp=fb.0.1753337944421.890770175469251980; _ga=GA1.1.1486675443.1753337944; __stripe_mid=16229050-d504-4742-bada-2245418ec329290a94; _ga_WE7JYK3W5B=GS2.1.s1755900701$o4$g1$t1755904723$j60$l0$h0; NEXT_LOCALE=es; csrftoken=481q5R5n2wgydzSIqqVhgO1mXNgAfd8i; sessionid=40s7l3jj2p0cqp1tx15ukk5gpp1fuwlv; _dd_s=logs=1&id=bbff2c80-f5e5-439f-8b93-f74d7dc9332f&created=1756049370287&expire=1756051057191",
+    cookie: `NEXT_LOCALE=es; _fbp=fb.0.1757619907010.549046907627441429; _ga=GA1.1.1097585688.1757619907; __stripe_mid=e6e228bc-bbd1-4fec-8e40-ac6089c2fd6f1ef505; _ga_WE7JYK3W5B=GS2.1.s1757619907$o1$g1$t1757622540$j60$l0$h0; csrftoken=${csrftoken}; sessionid=2aoll3oczzvbbpq6r9jokq59kcpp55iq; _dd_s=logs=1&id=6ad4b8c6-cb10-4c59-bcd0-666d90616351&created=1760546518282&expire=1760549321739`,
     Referer: "https://localhost/cases/new/",
   },
-  body: `csrfmiddlewaretoken=L11FiDe712Nm2VvpiAZVC5VfmSug2nGOFZSVdk9kToTK5kdXyQK2IJMr9vAG7qEW&author=2&summary=${title}&default_tester=armando&product=4&category=5&case_status=1&priority=1&setup_duration=0&testing_duration=0&text=${content}&script=&arguments=&requirement=&extra_link=&notes=&email_settings-0-auto_to_case_author=on&email_settings-0-auto_to_run_manager=on&email_settings-0-auto_to_execution_assignee=on&email_settings-0-auto_to_case_tester=on&email_settings-0-auto_to_run_tester=on&email_settings-0-notify_on_case_update=on&email_settings-0-notify_on_case_delete=on&email_settings-0-cc_list=&email_settings-0-case=&email_settings-0-id=&email_settings-TOTAL_FORMS=1&email_settings-INITIAL_FORMS=0&email_settings-MIN_NUM_FORMS=0&email_settings-MAX_NUM_FORMS=1`,
+  body: `csrfmiddlewaretoken=${csrfmiddlewaretoken}&author=2&summary=Test2&default_tester=${default_tester}&product=${product_id}&category=${category_id}&case_status=2&priority=1&setup_duration=0&testing_duration=0&text=Test2&script=&arguments=&requirement=&extra_link=&notes=&email_settings-0-auto_to_case_author=on&email_settings-0-auto_to_run_manager=on&email_settings-0-auto_to_execution_assignee=on&email_settings-0-auto_to_case_tester=on&email_settings-0-auto_to_run_tester=on&email_settings-0-notify_on_case_update=on&email_settings-0-notify_on_case_delete=on&email_settings-0-cc_list=&email_settings-0-case=&email_settings-0-id=&email_settings-TOTAL_FORMS=1&email_settings-INITIAL_FORMS=0&email_settings-MIN_NUM_FORMS=0&email_settings-MAX_NUM_FORMS=1`,
   method: "POST",
 });
 
@@ -29,13 +36,12 @@ const createTest = async (title: string, content: string) => {
       "https://localhost/cases/new/",
       headers(title, content),
     );
-
     if (response.ok) {
       const status = await response.status;
       console.log(status);
     }
   } catch (error) {
-    console.warn(error, response);
+    throw new Error(`Error at creating test case: ${title}\nError: ${error}`);
   }
 };
 

@@ -12,13 +12,14 @@ import {
   ShadingType,
 } from "docx";
 import * as fs from "fs";
+import * as path from "path";
+import PizZip from "pizzip";
 import { data } from "./data/data";
 import { titles } from "./data/titles";
 
 // ===============================
 // Data types
 // ===============================
-
 interface TestCase {
   title: string;
   description: string;
@@ -34,7 +35,6 @@ interface Title {
 // ===============================
 // Create test case table
 // ===============================
-
 function createTestCaseTable(testId: number, tc: TestCase): Table {
   const headerCell = new TableCell({
     children: [
@@ -90,20 +90,19 @@ function createTestCaseTable(testId: number, tc: TestCase): Table {
 }
 
 // ===============================
-// Generate word document
+// Generate new test cases document
 // ===============================
-
-export default async function generateDoc() {
+async function generateNewTestCasesDoc(): Promise<Buffer> {
   const testCasesData: TestCase[] = data;
   const titlesData: Title[] = titles;
   let TEST_ID = 1228;
   let TITLE_IDX = 0;
 
-  const allParagraphs: (Paragraph | Table)[] = [];
+  const newParagraphs: (Paragraph | Table)[] = [];
 
   for (const tc of testCasesData) {
     if (tc.isFirst) {
-      allParagraphs.push(
+      newParagraphs.push(
         new Paragraph({ children: [new TextRun({ break: 1 })] }),
         new Paragraph({
           text: titlesData[TITLE_IDX].text,
@@ -114,7 +113,7 @@ export default async function generateDoc() {
     }
 
     const table = createTestCaseTable(TEST_ID, tc);
-    allParagraphs.push(
+    newParagraphs.push(
       new Paragraph({ text: "" }),
       table,
       new Paragraph({ text: "" }),
@@ -126,16 +125,116 @@ export default async function generateDoc() {
   const doc = new Document({
     sections: [
       {
-        properties: {},
-        children: allParagraphs,
+        children: newParagraphs,
       },
     ],
   });
+
+  return await Packer.toBuffer(doc);
+}
+
+// ===============================
+// Merge two DOCX files
+// ===============================
+async function mergeDocxFiles(
+  originalPath: string,
+  newContentBuffer: Buffer,
+  outputPath: string,
+): Promise<void> {
   try {
-    const buffer = await Packer.toBuffer(doc);
-    fs.writeFileSync("final_document.docx", buffer);
-    console.log("✅ Document generated successfully: final_document.docx");
+    // Read original document
+    const originalContent = fs.readFileSync(originalPath);
+    const originalZip = new PizZip(originalContent);
+
+    // Read new content document
+    const newZip = new PizZip(newContentBuffer);
+
+    // Extract document.xml from both files
+    const originalDocXml = originalZip.file("word/document.xml")?.asText();
+    const newDocXml = newZip.file("word/document.xml")?.asText();
+
+    if (!originalDocXml || !newDocXml) {
+      throw new Error("Could not extract document.xml from one of the files");
+    }
+
+    // Find the closing body tag in original document
+    const bodyEndTag = "</w:body>";
+    const bodyEndIndex = originalDocXml.lastIndexOf(bodyEndTag);
+
+    if (bodyEndIndex === -1) {
+      throw new Error("Could not find closing body tag in original document");
+    }
+
+    // Extract content from new document (everything between <w:body> and </w:body>)
+    const newBodyStart = newDocXml.indexOf("<w:body>") + "<w:body>".length;
+    const newBodyEnd = newDocXml.lastIndexOf("</w:body>");
+    const newContent = newDocXml.substring(newBodyStart, newBodyEnd);
+
+    // Add page break before new content
+    // eslint-disable-next-line quotes
+    const pageBreak = '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
+
+    // Merge: original content + page break + new content + closing tags
+    const mergedDocXml =
+      originalDocXml.substring(0, bodyEndIndex) +
+      pageBreak +
+      newContent +
+      originalDocXml.substring(bodyEndIndex);
+
+    // Update the document.xml in the original zip
+    originalZip.file("word/document.xml", mergedDocXml);
+
+    // Copy media files from new document if they exist
+    const newMediaFiles = Object.keys(newZip.files).filter((filename) =>
+      filename.startsWith("word/media/"),
+    );
+
+    for (const mediaFile of newMediaFiles) {
+      const file = newZip.file(mediaFile);
+      if (file) {
+        originalZip.file(mediaFile, file.asNodeBuffer());
+      }
+    }
+
+    // Generate the final merged document
+    const mergedBuffer = originalZip.generate({
+      type: "nodebuffer",
+      compression: "DEFLATE",
+    });
+
+    // Write to output file
+    fs.writeFileSync(outputPath, mergedBuffer);
+    console.log(`✅ Documents merged successfully: ${outputPath}`);
   } catch (error) {
-    console.error("❌ Error while saving final_document.docx", error);
+    throw new Error(`❌ Error merging documents: ${error}`);
+  }
+}
+
+// ===============================
+// Main function
+// ===============================
+export default async function generateDocWithAppend() {
+  const originalDocPath = "./original.docx";
+  const outputPath = "./final_document.docx";
+
+  try {
+    // Step 1: Generate new test cases document
+    console.log("📝 Generating new test cases...");
+    const newContentBuffer = await generateNewTestCasesDoc();
+
+    // Step 2: Check if original document exists
+    if (!fs.existsSync(originalDocPath)) {
+      // If no original exists, just save the new content
+      fs.writeFileSync(outputPath, newContentBuffer);
+      console.log("✅ New document created (no original to merge)");
+      return;
+    }
+
+    // Step 3: Merge with original document
+    console.log("🔗 Merging with original document...");
+    await mergeDocxFiles(originalDocPath, newContentBuffer, outputPath);
+  } catch (error) {
+    console.error("❌ Error:", error);
+    throw error;
   }
 }
