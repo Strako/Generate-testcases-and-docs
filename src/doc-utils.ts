@@ -211,7 +211,7 @@ async function mergeDocxFiles(
 }
 
 // ===============================
-// Main function
+// Create final_document.docx
 // ===============================
 export default async function generateDocWithAppend() {
   const originalDocPath = "./original.docx";

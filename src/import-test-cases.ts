@@ -29,6 +29,10 @@ const headers = (title: string, content: string) => ({
   method: "POST",
 });
 
+// ===============================
+// Request create test cases
+// ===============================
+
 const createTest = async (title: string, content: string) => {
   let response;
   try {
@@ -44,6 +48,10 @@ const createTest = async (title: string, content: string) => {
     throw new Error(`Error at creating test case: ${title}\nError: ${error}`);
   }
 };
+
+// ===============================
+// Upload each test case
+// ===============================
 
 export default async function importTestCases() {
   for (const test of testcases) {
